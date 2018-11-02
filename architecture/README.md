@@ -15,6 +15,7 @@ The code is split up into 3 modules to start.
 * Updates the ledger display
 
 ### 2. Data Module (BudgetController)
+* Adds new items to the internal data structure
 * Calculates the total expenses and total incomes
 * Calculates the balance
 * Takes the expenses and incomes
