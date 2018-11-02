@@ -9,16 +9,16 @@ This is a simple monthly budget app which takes in expenses and income and displ
 ![Modules](diagrams/png/modules.png "Modules")
 
 The code is split up into 3 modules to start.
-### 1. UI Module
+### 1. UI Module (UIController)
 * Gets the expenses/income inputted by the user
 * Updates the balance display
 * Updates the ledger display
 
-### 2. Data Module
+### 2. Data Module (BudgetController)
 * Calculates the total expenses and total incomes
 * Calculates the balance
 * Takes the expenses and incomes
 * Returns the balance
 
-### 3. Controller module
+### 3. Controller module (AppController)
 * Controls interaction between other 2 modules
