@@ -13,11 +13,13 @@ The code is split up into 3 modules to start.
 * Gets the expenses/income inputted by the user
 * Updates the balance display
 * Updates the ledger display
+* Clears the inputs after a new item is submitted
 
 ### 2. Data Module (BudgetController)
 * Adds new items to the internal data structure
 * Calculates the total expenses and total incomes
 * Calculates the balance
+* Calculates the expense percentage of total income
 * Takes the expenses and incomes
 * Returns the balance
 
