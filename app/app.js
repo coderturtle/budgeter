@@ -4,6 +4,19 @@ var budgetController = (function() {
         this.id = id;
         this.description = description;
         this.value = value;
+        this.percentage = -1;
+    };
+
+    Expense.prototype.calculatePercent = function(totalIncome) {
+        if(totalIncome > 0) {
+            this.percentage = Math.round((this.value / totalIncome) * 100);
+        } else {
+            this.percentage = -1;
+        }
+    };
+
+    Expense.prototype.getPercent = function() {
+        return this.percentage;
     };
 
     var Income = function(id, description, value) {
@@ -98,6 +111,12 @@ var budgetController = (function() {
             
         },
 
+        calculatePercentages: function () {
+            data.allItems.exp.forEach(function(curr) {
+                curr.calculatePercent(data.totals.inc);
+            })
+        },
+        
         getBudget: function () {
             return {
                 budget: data.budget,
@@ -105,6 +124,13 @@ var budgetController = (function() {
                 expenses: data.totals['exp'],
                 percentage: data.percentage
             }
+        },
+
+        getPercentages: function () {
+            var itemPercentages = data.allItems.exp.map(function(curr) {
+                return curr.getPercent();
+            });
+            return itemPercentages;
         },
 
         // method to inspect data for debugging during development
@@ -130,7 +156,8 @@ var uiController = (function() {
         budgetExpensesValue: 'budgetExpensesValue',
         budgetIncomeValue: 'budgetIncomeValue',
         budgetValue: 'budgetValue',
-        containerClass: '.container'
+        containerClass: '.container',
+        itemPercentageLabel: '.item__percentage'
     }
 
     return {
@@ -202,6 +229,25 @@ var uiController = (function() {
                 document.getElementById(DOMconsts.budgetExpensesPercentage).textContent = '---';
             }
             
+        },
+
+        displayPercentages: function(itemPercentages) {
+            var percentageFields = document.querySelectorAll(DOMconsts.itemPercentageLabel);
+
+            var nodelistForEach = function(list, callback) {
+                for (i = 0; i < list.length; i++) {
+                    callback(list[i], i);
+                }
+            };
+
+            nodelistForEach(percentageFields, function(curr, index) {
+                if (itemPercentages[index] > 0) {
+                    curr.textContent = itemPercentages[index] + '%';
+                } else {
+                    curr.textContent = '---';
+                }
+                
+            })
         }
     }
 
@@ -224,7 +270,7 @@ var appController = (function(budgetCtrl, uiCtrl) {
         });
 
         document.querySelector(DOM.containerClass).addEventListener('click', appDeleteItem);
-    }
+    };
     
     var updateBudget = function () {
         // Calculate the budget
@@ -235,7 +281,19 @@ var appController = (function(budgetCtrl, uiCtrl) {
 
         // Update the UI display with the budget value
         uiController.updateBudget(budget);
-    }
+    };
+
+    var updatePercentages = function() {
+        // calculate percentages
+        budgetController.calculatePercentages();
+
+        // return the percentages
+        var itemPercentages = budgetController.getPercentages();
+
+        // update the ledger item percentages in the UI
+        uiController.displayPercentages(itemPercentages);
+
+    };
 
     var appAddItem = function () {
         // Get the newly added item from the UI inputs
@@ -256,6 +314,9 @@ var appController = (function(budgetCtrl, uiCtrl) {
 
                 // Calculate, update & display the budget
                 updateBudget();
+
+                // update the ledger percentages
+                updatePercentages();
             }
     };
 
@@ -279,6 +340,9 @@ var appController = (function(budgetCtrl, uiCtrl) {
 
             // Calculate, update & display the budget
             updateBudget();
+
+            // update the ledger percentages
+            updatePercentages();
         }
 
     };
