@@ -157,8 +157,34 @@ var uiController = (function() {
         budgetIncomeValue: 'budgetIncomeValue',
         budgetValue: 'budgetValue',
         containerClass: '.container',
-        itemPercentageLabel: '.item__percentage'
-    }
+        itemPercentageLabel: '.item__percentage',
+        budgetDateLabel: '.budget__title--month'
+    };
+
+    var formatNums = function(num, type) {
+        // Get the absolute of the num and format to 2 decimal spaces
+        num = Math.abs(num);
+        num = num.toFixed(2);
+
+        // split the num into integer and decimals
+        var splitNum = num.split('.');
+        var int = splitNum[0];
+        var dec = splitNum[1];
+
+        // if the integer part is greater than a thousand we want to inject a comma at before the third last number
+        if (int.length > 3) {
+            int = int.substr(0, int.length - 3) + ',' + int.substr(int.length - 3, 3);
+        }
+
+        return (type === 'exp' ? '- ' : '+ ') + int + '.' + dec;
+    };
+
+    // helper function to perform forEach loop on a nodelist
+    var nodelistForEach = function(list, callback) {
+        for (i = 0; i < list.length; i++) {
+            callback(list[i], i);
+        }
+    };
 
     return {
         // return all the DOM element id constants
@@ -184,18 +210,18 @@ var uiController = (function() {
                 // set the side of the ledger we want to inject the new item into
                 element = DOMconsts.incomeList;
 
-                html = '<div class="item clearfix" id="inc-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">+ %value%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
+                html = '<div class="item clearfix" id="inc-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
             } else if (type === 'exp') {
                 // set the side of the ledger we want to inject the new item into
                 element = DOMconsts.expensesList;
 
-                html = '<div class="item clearfix" id="exp-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">- %value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
+                html = '<div class="item clearfix" id="exp-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
             }
 
             // Inject the new item into the static HTML
             html = html.replace('%id%', newItem.id);
             html = html.replace('%description%', newItem.description);
-            html = html.replace('%value%', newItem.value);
+            html = html.replace('%value%', formatNums(newItem.value, type));
 
             // Inject the new HTML into the DOM
             document.getElementById(element).insertAdjacentHTML('beforeend', html);
@@ -219,9 +245,14 @@ var uiController = (function() {
 
         updateBudget: function(budgetObj) {
             // update the budget elements
-            document.getElementById(DOMconsts.budgetValue).textContent = budgetObj.budget;
-            document.getElementById(DOMconsts.budgetIncomeValue).textContent = budgetObj.income;
-            document.getElementById(DOMconsts.budgetExpensesValue).textContent = budgetObj.expenses;
+            // check whether to display + or - on the overall balance
+            var type;
+            budgetObj.income > budgetObj.expenses ? type = 'inc' : type = 'exp';
+            
+            // update the balanace and totals
+            document.getElementById(DOMconsts.budgetValue).textContent = formatNums(budgetObj.budget, type);
+            document.getElementById(DOMconsts.budgetIncomeValue).textContent = formatNums(budgetObj.income, 'inc');
+            document.getElementById(DOMconsts.budgetExpensesValue).textContent = formatNums(budgetObj.expenses, 'exp');
 
             if (budgetObj.percentage > 0) {
                 document.getElementById(DOMconsts.budgetExpensesPercentage).textContent = budgetObj.percentage + '%';
@@ -234,12 +265,6 @@ var uiController = (function() {
         displayPercentages: function(itemPercentages) {
             var percentageFields = document.querySelectorAll(DOMconsts.itemPercentageLabel);
 
-            var nodelistForEach = function(list, callback) {
-                for (i = 0; i < list.length; i++) {
-                    callback(list[i], i);
-                }
-            };
-
             nodelistForEach(percentageFields, function(curr, index) {
                 if (itemPercentages[index] > 0) {
                     curr.textContent = itemPercentages[index] + '%';
@@ -248,6 +273,32 @@ var uiController = (function() {
                 }
                 
             })
+        },
+
+        updateDate: function() {
+            var now, year, months, month;
+
+            now = new Date();
+            year = now.getFullYear();
+            month = now.getMonth();
+
+            // as getMonth only returns a number we create an array of months to convert it into the string version
+            months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+            document.querySelector(DOMconsts.budgetDateLabel).textContent = months[month] + ', ' + year;
+        },
+
+        changedType: function() {
+            console.log('changed');
+            var fields = [document.getElementById(DOMconsts.addType),
+                document.getElementById(DOMconsts.addDescription),
+                document.getElementById(DOMconsts.addValue)];
+            
+            fields.forEach(function(curr) {
+                curr.classList.toggle('red-focus');
+            });
+
+            document.getElementById(DOMconsts.addBtn).classList.toggle('red');
         }
     }
 
@@ -257,19 +308,23 @@ var uiController = (function() {
 var appController = (function(budgetCtrl, uiCtrl) {
 
     var setupEventListeners = function() {
-        var DOM = uiController.getDOMconsts();
+        document.addEventListener('DOMContentLoaded',function() {
+            var DOM = uiController.getDOMconsts();
 
-        document.getElementById(DOM.addBtn).addEventListener('click', appAddItem);
+            document.getElementById(DOM.addBtn).addEventListener('click', appAddItem);
 
-        document.addEventListener('keypress', function(e) {
-            // Only fire when the return/enter key is pressed
-            // which is used to support older browsers which don't understand keycode
-            if (e.keyCode === 13 || e.which === 13) {
-                appAddItem();
-            }
+            document.addEventListener('keypress', function(e) {
+                // Only fire when the return/enter key is pressed
+                // which is used to support older browsers which don't understand keycode
+                if (e.keyCode === 13 || e.which === 13) {
+                    appAddItem();
+                }
+            });
+
+            document.querySelector(DOM.containerClass).addEventListener('click', appDeleteItem);
+            
+            //document.getElementById(DOM.addType).addEventListener('onChange', uiController.changedType());
         });
-
-        document.querySelector(DOM.containerClass).addEventListener('click', appDeleteItem);
     };
     
     var updateBudget = function () {
@@ -355,6 +410,7 @@ var appController = (function(budgetCtrl, uiCtrl) {
                 expenses: 0,
                 percentage: -1
             });
+            uiController.updateDate();
             setupEventListeners();
         }
     }
