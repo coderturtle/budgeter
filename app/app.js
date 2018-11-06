@@ -288,8 +288,8 @@ var uiController = (function() {
             document.querySelector(DOMconsts.budgetDateLabel).textContent = months[month] + ', ' + year;
         },
 
-        changedType: function() {
-            console.log('changed');
+        changeType: function() {
+            // get an array of the fields whose colors will change
             var fields = [document.getElementById(DOMconsts.addType),
                 document.getElementById(DOMconsts.addDescription),
                 document.getElementById(DOMconsts.addValue)];
@@ -323,7 +323,7 @@ var appController = (function(budgetCtrl, uiCtrl) {
 
             document.querySelector(DOM.containerClass).addEventListener('click', appDeleteItem);
             
-            //document.getElementById(DOM.addType).addEventListener('onChange', uiController.changedType());
+            document.getElementById(DOM.addType).addEventListener('change', uiController.changeType);
         });
     };
     
